@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>จำนวนลูกค้าตามแพลตฟอร์ม</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+        }
+        .bar-container {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-end;
+            height: 100%;
+        }
+        .bar-label {
+            position: absolute;
+            top: -24px;
+            font-size: 1rem;
+            font-weight: 600;
+            color: #4a5568;
+        }
+    </style>
+</head>
+<body class="p-8">
+
+    <div class="max-w-4xl mx-auto bg-white p-8 rounded-3xl shadow-2xl border border-gray-200">
+        <h1 class="text-3xl font-bold text-center mb-2 text-gray-800">จำนวนลูกค้าตามแพลตฟอร์ม นาย อภิพล ศรีโกมาตย์ CE6821</h1>
+        <p class="text-center text-gray-600 mb-10">ข้อมูลสรุปจากลูกค้าทั้งหมด 20 คน</p>
+
+        <!-- Chart Container -->
+        <div class="relative flex items-end justify-around h-96 gap-6 pt-12">
+            <!-- Line Graph SVG -->
+            <svg class="absolute inset-0 w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
+                <polyline fill="none" stroke="#6366f1" stroke-width="1.5"
+                    points="
+                        10,0
+                        30,28.57
+                        50,57.14
+                        70,57.14
+                        90,71.43
+                    " />
+            </svg>
+
+            <!-- Bar 1 -->
+            <div class="bar-container">
+                <span class="bar-label">7 คน</span>
+                <div class="w-24 bg-blue-600 rounded-t-lg transition-transform duration-300 group-hover:scale-y-110" style="height: calc(100% * (7 / 7));"></div>
+                <div class="mt-4 text-center text-sm font-medium text-gray-600">Shopee</div>
+            </div>
+
+            <!-- Bar 2 -->
+            <div class="bar-container">
+                <span class="bar-label">5 คน</span>
+                <div class="w-24 bg-orange-400 rounded-t-lg transition-transform duration-300 group-hover:scale-y-110" style="height: calc(100% * (5 / 7));"></div>
+                <div class="mt-4 text-center text-sm font-medium text-gray-600">Lazada</div>
+            </div>
+
+            <!-- Bar 3 -->
+            <div class="bar-container">
+                <span class="bar-label">3 คน</span>
+                <div class="w-24 bg-red-400 rounded-t-lg transition-transform duration-300 group-hover:scale-y-110" style="height: calc(100% * (3 / 7));"></div>
+                <div class="mt-4 text-center text-sm font-medium text-gray-600">Facebook Shop</div>
+            </div>
+
+            <!-- Bar 4 -->
+            <div class="bar-container">
+                <span class="bar-label">3 คน</span>
+                <div class="w-24 bg-teal-500 rounded-t-lg transition-transform duration-300 group-hover:scale-y-110" style="height: calc(100% * (3 / 7));"></div>
+                <div class="mt-4 text-center text-sm font-medium text-gray-600">Amazon</div>
+            </div>
+
+            <!-- Bar 5 -->
+            <div class="bar-container">
+                <span class="bar-label">2 คน</span>
+                <div class="w-24 bg-green-500 rounded-t-lg transition-transform duration-300 group-hover:scale-y-110" style="height: calc(100% * (2 / 7));"></div>
+                <div class="mt-4 text-center text-sm font-medium text-gray-600">JD Central</div>
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>

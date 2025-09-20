@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Consumer Data Matrix  </title>
+    <!-- Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js for charts -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Papa Parse for CSV parsing -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        body {
+            font-family: 'Kanit', sans-serif;
+            background-color: #0f172a; /* slate-900 */
+            background-image: radial-gradient(circle at top right, rgba(12, 74, 110, 0.5), transparent 40%),
+                              radial-gradient(circle at bottom left, rgba(134, 25, 143, 0.5), transparent 40%);
+            color: #e2e8f0; /* slate-200 */
+        }
+        .card {
+            background-color: rgba(30, 41, 59, 0.5); /* slate-800 with transparency */
+            border: 1px solid rgba(51, 65, 85, 0.7); /* slate-700 */
+            border-radius: 0.75rem; /* rounded-xl */
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            padding: 1.5rem; /* p-6 */
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            animation: fadeIn 0.5s ease-out forwards;
+        }
+        .card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 0 25px rgba(37, 204, 247, 0.3), 0 0 10px rgba(217, 70, 239, 0.2);
+        }
+        .text-glow {
+            text-shadow: 0 0 8px rgba(255, 255, 255, 0.3);
+        }
+        .button-glow {
+             background: linear-gradient(45deg, #2563eb, #7c3aed);
+             transition: box-shadow 0.3s ease, transform 0.2s ease;
+             box-shadow: 0 0 15px rgba(99, 102, 241, 0.5);
+        }
+        .button-glow:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 25px rgba(99, 102, 241, 0.8);
+        }
+        /* Custom scrollbar for a better look */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1e293b;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #475569;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #64748b;
+        }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+
+    <div class="max-w-7xl mx-auto">
+        <header class="mb-8 text-center">
+            <h1 class="text-4xl md:text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-fuchsia-500 text-glow">Consumer Data Matrix นาย อภิพล ศรีโกมาตย์ CE6821</h1>
+            <p class="text-slate-400 mt-2">ถอดรหัสพฤติกรรมผู้บริโภคผ่าน Google Sheet</p>
+        </header>
+
+        <!-- Data Loading Section -->
+        <div class="mb-6 p-4 bg-slate-800/50 border border-slate-700/70 rounded-xl shadow-lg">
+            <label for="googleSheetUrl" class="block mb-2 text-sm font-medium text-slate-300">
+                เชื่อมต่อ Google Sheet ของคุณ:
+            </label>
+            <div class="flex flex-col sm:flex-row gap-2">
+                <input type="url" id="googleSheetUrl" class="flex-grow p-2 bg-slate-900/70 border border-slate-600 rounded-lg text-slate-200 focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 outline-none" placeholder="https://docs.google.com/spreadsheets/d/...">
+                <button id="loadDataBtn" class="button-glow text-white font-bold py-2 px-4 rounded-lg">
+                    แสดงผลข้อมูล
+                </button>
+            </div>
+        </div>
+
+        <!-- Main Dashboard Grid -->
+        <div id="dashboard-content" class="space-y-6 opacity-0" style="transition: opacity 1s;">
+            <!-- New 2x2 Chart and Cards Grid -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- Gender Distribution (Doughnut Chart) -->
+                <div class="card">
+                    <h2 class="text-xl font-semibold text-slate-200 mb-4">สัดส่วนตามเพศ</h2>
+                    <div class="h-80 flex justify-center items-center">
+                        <canvas id="genderChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Shopping Frequency (Bar Chart) -->
+                <div class="card">
+                    <h2 class="text-xl font-semibold text-slate-200 mb-4">ความถี่ในการช้อป</h2>
+                    <div class="h-80">
+                        <canvas id="frequencyChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Platform Usage (Horizontal Bar Chart) -->
+                <div class="card">
+                    <h2 class="text-xl font-semibold text-slate-200 mb-4">แพลตฟอร์มยอดนิยม</h2>
+                    <div class="h-80">
+                        <canvas id="platformChart"></canvas>
+                    </div>
+                </div>
+                
+                <!-- Summary Cards -->
+                <div class="space-y-6">
+                    <div class="card flex items-center space-x-4">
+                        <div class="bg-cyan-500/10 p-3 rounded-full border border-cyan-500/30">
+                           <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
+                        </div>
+                        <div>
+                            <p class="text-slate-400 text-sm">ผู้ใช้งานทั้งหมด</p>
+                            <p id="total-users" class="text-2xl font-bold text-glow">0</p>
+                        </div>
+                    </div>
+                    <div class="card flex items-center space-x-4">
+                        <div class="bg-fuchsia-500/10 p-3 rounded-full border border-fuchsia-500/30">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-fuchsia-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                        </div>
+                        <div>
+                            <p class="text-slate-400 text-sm">ความพึงพอใจเฉลี่ย</p>
+                            <p id="avg-satisfaction" class="text-2xl font-bold text-glow">0.0</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Table Section -->
+            <div class="card">
+                 <div class="flex flex-col sm:flex-row justify-between items-center mb-4 gap-4">
+                    <h2 class="text-xl font-semibold text-slate-200">ฐานข้อมูลทั้งหมด</h2>
+                    <input type="text" id="table-filter" class="w-full sm:w-64 p-2 bg-slate-900/70 border border-slate-600 rounded-lg text-slate-200 focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 outline-none" placeholder="ค้นหาข้อมูล...">
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm text-left text-slate-400">
+                        <thead id="data-table-head" class="text-xs text-slate-300 uppercase bg-slate-700/50">
+                        </thead>
+                        <tbody id="data-table-body">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Loading Spinner -->
+        <div id="loading-spinner" class="hidden text-center p-10">
+            <svg class="animate-spin h-10 w-10 text-cyan-400 mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+            <p class="mt-2 text-slate-400 text-glow">กำลังถอดรหัสข้อมูล...</p>
+        </div>
+
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const urlInput = document.getElementById('googleSheetUrl');
+            const loadDataBtn = document.getElementById('loadDataBtn');
+            const dashboardContent = document.getElementById('dashboard-content');
+            const loadingSpinner = document.getElementById('loading-spinner');
+            let platformChartInstance = null;
+            let genderChartInstance = null;
+            let frequencyChartInstance = null;
+            let allData = [];
+
+            // Chart.js Global Defaults for Dark Theme
+            Chart.defaults.color = '#94a3b8'; // slate-400
+            Chart.defaults.borderColor = 'rgba(51, 65, 85, 0.7)'; // slate-700
+            const chartColors = ['#22d3ee', '#d946ef', '#f87171', '#4ade80', '#facc15', '#a78bfa'];
+
+            const processData = (data) => {
+                allData = data;
+                const totalUsers = data.length;
+                const totalSatisfaction = data.reduce((sum, row) => sum + parseFloat(row.satisfaction_score || 0), 0);
+                const avgSatisfaction = (totalSatisfaction / totalUsers).toFixed(2);
+                document.getElementById('total-users').textContent = totalUsers.toLocaleString();
+                document.getElementById('avg-satisfaction').textContent = avgSatisfaction;
+
+                const platformCounts = data.reduce((acc, row) => { const p = row.preferred_platform; if(p) acc[p] = (acc[p] || 0) + 1; return acc; }, {});
+                renderPlatformChart(Object.keys(platformCounts), Object.values(platformCounts));
+
+                const genderCounts = data.reduce((acc, row) => { const g = row.gender; if(g) acc[g] = (acc[g] || 0) + 1; return acc; }, {});
+                renderGenderChart(Object.keys(genderCounts), Object.values(genderCounts));
+                
+                const frequencyCounts = data.reduce((acc, row) => { const f = row.shopping_frequency; if(f) acc[f] = (acc[f] || 0) + 1; return acc; }, {});
+                const sortedFreq = Object.entries(frequencyCounts).sort((a,b) => b[1] - a[1]);
+                renderFrequencyChart(sortedFreq.map(item => item[0]), sortedFreq.map(item => item[1]));
+
+                renderTable(data);
+                
+                dashboardContent.style.opacity = 1;
+                loadingSpinner.classList.add('hidden');
+            };
+
+            const renderPlatformChart = (labels, data) => {
+                const ctx = document.getElementById('platformChart').getContext('2d');
+                if (platformChartInstance) platformChartInstance.destroy();
+                platformChartInstance = new Chart(ctx, {
+                    type: 'bar',
+                    data: { labels, datasets: [{ label: 'จำนวนผู้ใช้งาน', data, backgroundColor: chartColors.map(c => c + 'AA'), borderColor: chartColors, borderWidth: 1, borderRadius: 4 }] },
+                    options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, scales: { x: { grid: { color: 'rgba(51, 65, 85, 0.7)' } }, y: { grid: { display: false } } }, plugins: { legend: { display: false } } }
+                });
+            };
+
+            const renderGenderChart = (labels, data) => {
+                const ctx = document.getElementById('genderChart').getContext('2d');
+                if (genderChartInstance) genderChartInstance.destroy();
+                genderChartInstance = new Chart(ctx, {
+                    type: 'doughnut',
+                    data: { labels, datasets: [{ label: 'Gender', data, backgroundColor: chartColors, borderColor: '#0f172a', borderWidth: 4 }] },
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { boxWidth: 15, padding: 20 } } } }
+                });
+            };
+
+            const renderFrequencyChart = (labels, data) => {
+                const ctx = document.getElementById('frequencyChart').getContext('2d');
+                if (frequencyChartInstance) frequencyChartInstance.destroy();
+                frequencyChartInstance = new Chart(ctx, {
+                    type: 'bar',
+                    data: { labels, datasets: [{ label: 'ความถี่ในการซื้อ', data, backgroundColor: chartColors[1] + 'AA', borderColor: chartColors[1], borderWidth: 1, borderRadius: 4 }] },
+                    options: { responsive: true, maintainAspectRatio: false, scales: { x: { grid: { display: false } }, y: { grid: { color: 'rgba(51, 65, 85, 0.7)' } } }, plugins: { legend: { display: false } } }
+                });
+            };
+
+            const renderTable = (data) => {
+                const tableHead = document.getElementById('data-table-head');
+                const tableBody = document.getElementById('data-table-body');
+                tableHead.innerHTML = ''; tableBody.innerHTML = '';
+                if (!data || data.length === 0) return;
+                const headers = Object.keys(data[0]);
+                const headerRow = document.createElement('tr');
+                headers.forEach(h => { const th = document.createElement('th'); th.scope = 'col'; th.className = 'px-6 py-3 whitespace-nowrap'; th.textContent = h.replace(/_/g, ' '); headerRow.appendChild(th); });
+                tableHead.appendChild(headerRow);
+                data.forEach(row => {
+                    const tr = document.createElement('tr');
+                    tr.className = 'border-b border-slate-700 hover:bg-slate-700/50';
+                    headers.forEach(h => { const td = document.createElement('td'); td.className = 'px-6 py-4'; td.textContent = row[h]; tr.appendChild(td); });
+                    tableBody.appendChild(tr);
+                });
+            };
+            
+            document.getElementById('table-filter').addEventListener('keyup', () => {
+                const filterText = document.getElementById('table-filter').value.toLowerCase();
+                renderTable(allData.filter(row => Object.values(row).some(val => String(val).toLowerCase().includes(filterText))));
+            });
+
+            const loadFromGoogleSheet = (sheetUrl) => {
+                if (!sheetUrl || !sheetUrl.includes('docs.google.com/spreadsheets/d/')) { alert('URL ของ Google Sheet ไม่ถูกต้อง'); return; }
+                let csvUrl = sheetUrl;
+                if (sheetUrl.includes('/edit')) {
+                    const sheetIdMatch = sheetUrl.match(/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
+                    if (!sheetIdMatch || !sheetIdMatch[1]) { alert('ไม่พบ Sheet ID ใน URL'); return; }
+                    csvUrl = `https://docs.google.com/spreadsheets/d/${sheetIdMatch[1]}/export?format=csv`;
+                }
+                loadingSpinner.classList.remove('hidden');
+                dashboardContent.style.opacity = 0;
+                Papa.parse(csvUrl, {
+                    download: true, header: true, skipEmptyLines: true,
+                    complete: (results) => {
+                        if (results.data && results.errors.length === 0) processData(results.data);
+                        else { console.error("CSV Errors:", results.errors); alert("เกิดข้อผิดพลาดในการอ่านข้อมูล โปรดตรวจสอบการตั้งค่าแชร์ลิงก์"); loadingSpinner.classList.add('hidden'); }
+                    },
+                    error: (error) => { console.error("PapaParse Error:", error); alert("ไม่สามารถดึงข้อมูลได้ โปรดตรวจสอบลิงก์อีกครั้ง"); loadingSpinner.classList.add('hidden'); }
+                });
+            };
+
+            loadDataBtn.addEventListener('click', () => loadFromGoogleSheet(urlInput.value.trim()));
+            const defaultSheetUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTosLdpQrh6LZNh3gRhT-TKv9jg6KuwuaVZ-UY6ffBRBKghEyGmpcmIwTOhOoJBGF7RJpRdUkgyks0E/pub?gid=836901514&single=true&output=csv';
+            urlInput.value = defaultSheetUrl;
+            loadFromGoogleSheet(defaultSheetUrl);
+        });
+    </script>
+</body>
+</html>
+

@@ -1,0 +1,688 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Consumer Behavior Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #0f0f23 0%, #1a1a3a 50%, #2d1b69 100%);
+            min-height: 100vh;
+            position: relative;
+        }
+
+        /* Animated background particles */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                radial-gradient(circle at 20% 80%, rgba(120, 119, 198, 0.3) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(255, 119, 198, 0.15) 0%, transparent 50%),
+                radial-gradient(circle at 40% 40%, rgba(120, 219, 255, 0.1) 0%, transparent 50%);
+            z-index: -1;
+            animation: float 20s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            33% { transform: translateY(-20px) rotate(1deg); }
+            66% { transform: translateY(10px) rotate(-1deg); }
+        }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            box-shadow: 
+                0 20px 40px rgba(0, 0, 0, 0.4),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .glass-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.05), transparent);
+            transition: left 0.5s;
+            z-index: 1;
+        }
+
+        .glass-card:hover::before {
+            left: 100%;
+        }
+
+        .glass-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 
+                0 30px 60px rgba(0, 0, 0, 0.5),
+                inset 0 1px 0 rgba(255, 255, 255, 0.2);
+        }
+
+        .neon-text {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            position: relative;
+        }
+
+        .neon-glow {
+            box-shadow: 
+                0 0 20px rgba(102, 126, 234, 0.4),
+                0 0 40px rgba(118, 75, 162, 0.2);
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, 
+                rgba(102, 126, 234, 0.1) 0%, 
+                rgba(118, 75, 162, 0.1) 100%);
+            border: 1px solid rgba(102, 126, 234, 0.2);
+            transition: all 0.3s ease;
+        }
+
+        .stat-card:hover {
+            background: linear-gradient(135deg, 
+                rgba(102, 126, 234, 0.2) 0%, 
+                rgba(118, 75, 162, 0.2) 100%);
+            border: 1px solid rgba(102, 126, 234, 0.4);
+        }
+
+        .custom-input {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            color: white;
+            transition: all 0.3s ease;
+        }
+
+        .custom-input:focus {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(102, 126, 234, 0.5);
+            box-shadow: 0 0 20px rgba(102, 126, 234, 0.2);
+        }
+
+        .custom-input::placeholder {
+            color: rgba(255, 255, 255, 0.4);
+        }
+
+        .pulse-ring {
+            animation: pulse-ring 2s infinite;
+        }
+
+        @keyframes pulse-ring {
+            0% { transform: scale(1); opacity: 1; }
+            100% { transform: scale(1.2); opacity: 0; }
+        }
+
+        .chart-container {
+            position: relative;
+            z-index: 2;
+        }
+
+        .table-row {
+            background: rgba(255, 255, 255, 0.03);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            transition: all 0.3s ease;
+        }
+
+        .table-row:hover {
+            background: rgba(102, 126, 234, 0.1);
+            transform: scale(1.01);
+        }
+
+        .loading-spinner {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .icon-glow {
+            filter: drop-shadow(0 0 10px rgba(102, 126, 234, 0.5));
+        }
+
+        @keyframes slideInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .animate-slide-in {
+            animation: slideInUp 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+
+    <div class="max-w-7xl mx-auto">
+        <header class="mb-12 text-center animate-slide-in">
+            <h1 class="text-5xl md:text-6xl font-black neon-text mb-4">
+                แดชบอร์ดข้อมูลผู้บริโภค <br>
+                นาย อภิพล ศรีโกมาตย์ CE6821
+            </h1>
+            <div class="h-1 w-32 mx-auto neon-glow rounded-full bg-gradient-to-r from-blue-500 to-purple-500 mb-4"></div>
+            <p class="text-blue-200 text-xl font-light tracking-wide">
+                🚀 ภาพรวมข้อมูลสำคัญแบบ Real-time Analytics
+            </p>
+        </header>
+
+        <!-- Data Loading Section -->
+        <div class="mb-8 glass-card p-6 animate-slide-in">
+            <label for="csvFileInput" class="block mb-4 text-lg font-semibold text-blue-100">
+                📂 อัปโหลดไฟล์ CSV ของคุณ
+            </label>
+            <input type="file" id="csvFileInput" accept=".csv" 
+                   class="block w-full text-blue-100 border-2 border-dashed border-blue-300/30 rounded-xl cursor-pointer bg-transparent p-4 focus:outline-none hover:border-blue-300/50 transition-all duration-300">
+            <p class="mt-3 text-sm text-blue-200/70 flex items-center">
+                <span class="mr-2">💡</span>
+                ระบบจะโหลดข้อมูลจาก consumer_behavior_data.csv โดยอัตโนมัติ หรือคุณสามารถอัปโหลดไฟล์ใหม่ได้
+            </p>
+        </div>
+
+        <!-- Main Dashboard Grid -->
+        <div id="dashboard-content" class="space-y-8 opacity-0 transition-opacity duration-1000">
+            <!-- Stats Cards Row -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 animate-slide-in">
+                <!-- Total Users Card -->
+                <div class="glass-card stat-card p-8">
+                    <div class="flex items-center space-x-6">
+                        <div class="relative">
+                            <div class="bg-gradient-to-r from-blue-500 to-purple-500 p-4 rounded-2xl icon-glow">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                                </svg>
+                            </div>
+                            <div class="absolute inset-0 bg-gradient-to-r from-blue-500 to-purple-500 rounded-2xl pulse-ring opacity-20"></div>
+                        </div>
+                        <div>
+                            <p class="text-blue-200 text-sm font-medium mb-1">จำนวนผู้ใช้งานทั้งหมด</p>
+                            <p id="total-users" class="text-4xl font-black text-white">0</p>
+                            <p class="text-xs text-blue-300 mt-1">👥 Active Users</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Average Satisfaction Card -->
+                <div class="glass-card stat-card p-8">
+                    <div class="flex items-center space-x-6">
+                        <div class="relative">
+                            <div class="bg-gradient-to-r from-green-500 to-teal-500 p-4 rounded-2xl icon-glow">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                            </div>
+                            <div class="absolute inset-0 bg-gradient-to-r from-green-500 to-teal-500 rounded-2xl pulse-ring opacity-20"></div>
+                        </div>
+                        <div>
+                            <p class="text-blue-200 text-sm font-medium mb-1">ความพึงพอใจเฉลี่ย</p>
+                            <p id="avg-satisfaction" class="text-4xl font-black text-white">0.0</p>
+                            <p class="text-xs text-blue-300 mt-1">⭐ Satisfaction Score</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Charts Grid -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6 animate-slide-in">
+                <!-- Gender Distribution -->
+                <div class="glass-card p-8">
+                    <div class="flex items-center mb-6">
+                        <div class="bg-gradient-to-r from-pink-500 to-rose-500 p-2 rounded-lg mr-3">
+                            <span class="text-white text-lg">👥</span>
+                        </div>
+                        <h2 class="text-2xl font-bold text-white">Gender Distribution</h2>
+                    </div>
+                    <div class="h-80 chart-container">
+                        <canvas id="genderChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Shopping Frequency -->
+                <div class="glass-card p-8">
+                    <div class="flex items-center mb-6">
+                        <div class="bg-gradient-to-r from-cyan-500 to-blue-500 p-2 rounded-lg mr-3">
+                            <span class="text-white text-lg">🛍️</span>
+                        </div>
+                        <h2 class="text-2xl font-bold text-white">Shopping Frequency</h2>
+                    </div>
+                    <div class="h-80 chart-container">
+                        <canvas id="frequencyChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Platform Usage -->
+                <div class="glass-card p-8 lg:col-span-2 xl:col-span-1">
+                    <div class="flex items-center mb-6">
+                        <div class="bg-gradient-to-r from-purple-500 to-indigo-500 p-2 rounded-lg mr-3">
+                            <span class="text-white text-lg">📱</span>
+                        </div>
+                        <h2 class="text-2xl font-bold text-white">Platform Usage</h2>
+                    </div>
+                    <div class="h-80 chart-container">
+                        <canvas id="platformChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Table Section -->
+            <div class="glass-card p-8 animate-slide-in">
+                <div class="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
+                    <div class="flex items-center">
+                        <div class="bg-gradient-to-r from-orange-500 to-red-500 p-2 rounded-lg mr-3">
+                            <span class="text-white text-lg">📊</span>
+                        </div>
+                        <h2 class="text-2xl font-bold text-white">ข้อมูลทั้งหมด</h2>
+                    </div>
+                    <div class="w-full sm:w-auto">
+                         <input type="text" id="table-filter" 
+                                class="w-full sm:w-80 p-4 custom-input rounded-xl focus:outline-none placeholder-blue-200/50 text-white" 
+                                placeholder="🔍 ค้นหาในตาราง...">
+                    </div>
+                </div>
+                <div class="overflow-x-auto rounded-xl">
+                    <table class="w-full text-sm text-left">
+                        <thead id="data-table-head" class="text-xs text-blue-100 uppercase bg-gradient-to-r from-blue-600/20 to-purple-600/20">
+                            <!-- Headers will be generated by JavaScript -->
+                        </thead>
+                        <tbody id="data-table-body" class="text-blue-100">
+                            <!-- Rows will be generated by JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Loading Spinner -->
+        <div id="loading-spinner" class="hidden text-center p-20">
+            <div class="inline-flex items-center space-x-4">
+                <svg class="animate-spin h-16 w-16 text-blue-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <div class="loading-spinner">
+                    <p class="text-2xl font-bold">กำลังโหลดข้อมูล...</p>
+                    <p class="text-blue-300 mt-2">⚡ Processing your data</p>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const fileInput = document.getElementById('csvFileInput');
+            const dashboardContent = document.getElementById('dashboard-content');
+            const loadingSpinner = document.getElementById('loading-spinner');
+            let platformChartInstance = null;
+            let genderChartInstance = null;
+            let frequencyChartInstance = null;
+            let allData = [];
+
+            // Chart.js default colors and styling
+            Chart.defaults.color = '#e2e8f0';
+            Chart.defaults.borderColor = 'rgba(255, 255, 255, 0.1)';
+            Chart.defaults.backgroundColor = 'rgba(255, 255, 255, 0.05)';
+
+            // --- Function to process and render data ---
+            const processData = (data) => {
+                allData = data;
+                
+                // 1. Calculate metrics for cards with animation
+                const totalUsers = data.length;
+                const totalSatisfaction = data.reduce((sum, row) => sum + parseFloat(row.satisfaction_score || 0), 0);
+                const avgSatisfaction = (totalSatisfaction / totalUsers).toFixed(2);
+
+                // Animate numbers
+                animateNumber('total-users', 0, totalUsers, 1000);
+                animateNumber('avg-satisfaction', 0, parseFloat(avgSatisfaction), 1000, true);
+
+                // 2. Prepare data for Platform Chart
+                const platformCounts = data.reduce((acc, row) => {
+                    const platform = row.preferred_platform;
+                    if (platform) acc[platform] = (acc[platform] || 0) + 1;
+                    return acc;
+                }, {});
+                renderPlatformChart(Object.keys(platformCounts), Object.values(platformCounts));
+
+                // 3. Prepare data for Gender Chart
+                const genderCounts = data.reduce((acc, row) => {
+                    const gender = row.gender;
+                    if (gender) acc[gender] = (acc[gender] || 0) + 1;
+                    return acc;
+                }, {});
+                renderGenderChart(Object.keys(genderCounts), Object.values(genderCounts));
+                
+                // 4. Prepare data for Frequency Chart
+                const frequencyCounts = data.reduce((acc, row) => {
+                    const freq = row.shopping_frequency;
+                    if (freq) acc[freq] = (acc[freq] || 0) + 1;
+                    return acc;
+                }, {});
+                const sortedFrequencies = Object.entries(frequencyCounts).sort((a, b) => b[1] - a[1]);
+                renderFrequencyChart(sortedFrequencies.map(item => item[0]), sortedFrequencies.map(item => item[1]));
+
+                // 5. Render the data table
+                renderTable(data);
+                
+                // Show dashboard and hide spinner with animation
+                loadingSpinner.classList.add('hidden');
+                setTimeout(() => {
+                    dashboardContent.classList.remove('opacity-0');
+                    dashboardContent.classList.add('opacity-100');
+                }, 300);
+            };
+
+            // Animate numbers function
+            const animateNumber = (elementId, start, end, duration, isDecimal = false) => {
+                const element = document.getElementById(elementId);
+                const startTime = performance.now();
+                
+                const animate = (currentTime) => {
+                    const elapsed = currentTime - startTime;
+                    const progress = Math.min(elapsed / duration, 1);
+                    
+                    const easeOutQuart = 1 - Math.pow(1 - progress, 4);
+                    const current = start + (end - start) * easeOutQuart;
+                    
+                    if (isDecimal) {
+                        element.textContent = current.toFixed(2);
+                    } else {
+                        element.textContent = Math.floor(current).toLocaleString();
+                    }
+                    
+                    if (progress < 1) {
+                        requestAnimationFrame(animate);
+                    }
+                };
+                
+                requestAnimationFrame(animate);
+            };
+
+            // --- Function to render the platform bar chart ---
+            const renderPlatformChart = (labels, data) => {
+                const ctx = document.getElementById('platformChart').getContext('2d');
+                if (platformChartInstance) platformChartInstance.destroy();
+                
+                platformChartInstance = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'จำนวนผู้ใช้งาน',
+                            data: data,
+                            backgroundColor: [
+                                'rgba(139, 92, 246, 0.8)',
+                                'rgba(59, 130, 246, 0.8)',
+                                'rgba(16, 185, 129, 0.8)',
+                                'rgba(245, 101, 101, 0.8)',
+                                'rgba(251, 191, 36, 0.8)'
+                            ],
+                            borderColor: [
+                                'rgba(139, 92, 246, 1)',
+                                'rgba(59, 130, 246, 1)',
+                                'rgba(16, 185, 129, 1)',
+                                'rgba(245, 101, 101, 1)',
+                                'rgba(251, 191, 36, 1)'
+                            ],
+                            borderWidth: 2,
+                            borderRadius: 8,
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: {
+                                backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                                titleColor: 'white',
+                                bodyColor: 'white',
+                                borderColor: 'rgba(139, 92, 246, 0.5)',
+                                borderWidth: 1
+                            }
+                        },
+                        scales: {
+                            y: { 
+                                beginAtZero: true,
+                                grid: { color: 'rgba(255, 255, 255, 0.1)' }
+                            },
+                            x: {
+                                grid: { display: false }
+                            }
+                        }
+                    }
+                });
+            };
+
+            // --- Function to render the gender pie chart ---
+            const renderGenderChart = (labels, data) => {
+                const ctx = document.getElementById('genderChart').getContext('2d');
+                if (genderChartInstance) genderChartInstance.destroy();
+                
+                genderChartInstance = new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'Gender',
+                            data: data,
+                            backgroundColor: [
+                                'rgba(236, 72, 153, 0.8)',
+                                'rgba(59, 130, 246, 0.8)',
+                                'rgba(16, 185, 129, 0.8)',
+                                'rgba(245, 101, 101, 0.8)'
+                            ],
+                            borderColor: [
+                                'rgba(236, 72, 153, 1)',
+                                'rgba(59, 130, 246, 1)',
+                                'rgba(16, 185, 129, 1)',
+                                'rgba(245, 101, 101, 1)'
+                            ],
+                            borderWidth: 2
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { 
+                                position: 'bottom',
+                                labels: { color: 'white', padding: 20 }
+                            },
+                            tooltip: {
+                                backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                                titleColor: 'white',
+                                bodyColor: 'white',
+                                borderColor: 'rgba(236, 72, 153, 0.5)',
+                                borderWidth: 1
+                            }
+                        }
+                    }
+                });
+            };
+
+            // --- Function to render the frequency bar chart ---
+            const renderFrequencyChart = (labels, data) => {
+                const ctx = document.getElementById('frequencyChart').getContext('2d');
+                if (frequencyChartInstance) frequencyChartInstance.destroy();
+                
+                frequencyChartInstance = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'ความถี่ในการซื้อ',
+                            data: data,
+                            backgroundColor: [
+                                'rgba(6, 182, 212, 0.8)',
+                                'rgba(59, 130, 246, 0.8)',
+                                'rgba(139, 92, 246, 0.8)',
+                                'rgba(236, 72, 153, 0.8)',
+                                'rgba(245, 101, 101, 0.8)'
+                            ],
+                            borderColor: [
+                                'rgba(6, 182, 212, 1)',
+                                'rgba(59, 130, 246, 1)',
+                                'rgba(139, 92, 246, 1)',
+                                'rgba(236, 72, 153, 1)',
+                                'rgba(245, 101, 101, 1)'
+                            ],
+                            borderWidth: 2,
+                            borderRadius: 8,
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: {
+                                backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                                titleColor: 'white',
+                                bodyColor: 'white',
+                                borderColor: 'rgba(6, 182, 212, 0.5)',
+                                borderWidth: 1
+                            }
+                        },
+                        scales: {
+                            y: { 
+                                beginAtZero: true,
+                                grid: { color: 'rgba(255, 255, 255, 0.1)' }
+                            },
+                            x: {
+                                grid: { display: false }
+                            }
+                        }
+                    }
+                });
+            };
+
+            // --- Function to render the table ---
+            const renderTable = (data) => {
+                const tableHead = document.getElementById('data-table-head');
+                const tableBody = document.getElementById('data-table-body');
+                
+                tableHead.innerHTML = '';
+                tableBody.innerHTML = '';
+
+                if (data.length === 0) {
+                    tableBody.innerHTML = '<tr><td colspan="100%" class="text-center p-8 text-blue-200">ไม่พบข้อมูล</td></tr>';
+                    return;
+                }
+
+                const headers = Object.keys(data[0]);
+                const headerRow = document.createElement('tr');
+                headers.forEach(header => {
+                    const th = document.createElement('th');
+                    th.scope = 'col';
+                    th.className = 'px-6 py-4 whitespace-nowrap font-semibold';
+                    th.textContent = header.replace(/_/g, ' ').toUpperCase();
+                    headerRow.appendChild(th);
+                });
+                tableHead.appendChild(headerRow);
+
+                data.forEach((row, index) => {
+                    const tr = document.createElement('tr');
+                    tr.className = 'table-row';
+                    tr.style.animationDelay = `${index * 0.05}s`;
+                    
+                    headers.forEach(header => {
+                        const td = document.createElement('td');
+                        td.className = 'px-6 py-4';
+                        td.textContent = row[header];
+                        tr.appendChild(td);
+                    });
+                    tableBody.appendChild(tr);
+                });
+            };
+
+            // --- Function to filter the table ---
+            const filterTable = () => {
+                const filterText = document.getElementById('table-filter').value.toLowerCase();
+                const filteredData = allData.filter(row => {
+                    return Object.values(row).some(value =>
+                        String(value).toLowerCase().includes(filterText)
+                    );
+                });
+                renderTable(filteredData);
+            };
+            
+            document.getElementById('table-filter').addEventListener('keyup', filterTable);
+
+            // --- Function to handle file parsing ---
+            const parseFile = (file) => {
+                loadingSpinner.classList.remove('hidden');
+                dashboardContent.classList.add('opacity-0');
+                
+                Papa.parse(file, {
+                    header: true,
+                    skipEmptyLines: true,
+                    complete: (results) => {
+                        if (results.data && results.errors.length === 0) {
+                             processData(results.data);
+                        } else {
+                            console.error("CSV Parsing Errors:", results.errors);
+                            alert("เกิดข้อผิดพลาดในการอ่านไฟล์ CSV โปรดตรวจสอบไฟล์และลองอีกครั้ง");
+                            loadingSpinner.classList.add('hidden');
+                        }
+                    },
+                    error: (error) => {
+                        console.error("PapaParse Error:", error);
+                        alert("ไม่สามารถอ่านไฟล์ได้ โปรดเลือกไฟล์ CSV ที่ถูกต้อง");
+                        loadingSpinner.classList.add('hidden');
+                    }
+                });
+            };
+
+            // --- Event listener for file input ---
+            fileInput.addEventListener('change', (event) => {
+                const file = event.target.files[0];
+                if (file) {
+                    parseFile(file);
+                }
+            });
+            
+            // --- Auto-load data from a known file path ---
+            const initialFilePath = 'consumer_behavior_data.csv';
+            fetch(initialFilePath)
+                .then(response => {
+                    if (!response.ok) throw new Error(`ไม่พบไฟล์: ${initialFilePath}`);
+                    return response.text();
+                })
+                .then(csvText => {
+                    const file = new File([csvText], initialFilePath, { type: "text/csv" });
+                    parseFile(file);
+                })
+                .catch(error => {
+                    console.warn(error.message);
+                    loadingSpinner.classList.add('hidden');
+                    dashboardContent.classList.remove('opacity-0');
+                    dashboardContent.classList.add('opacity-100');
+                });
+        });
+    </script>
+</body>
+</html>

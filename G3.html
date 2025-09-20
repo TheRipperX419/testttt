@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Infographic แสดงจำนวนลูกค้า</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@400;600&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels"></script>
+    <style>
+        body {
+            font-family: 'Kanit', sans-serif;
+            background-color: #f3f4f6;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 2rem;
+        }
+        .container {
+            max-width: 900px;
+            width: 100%;
+            background-color: #fff;
+            border-radius: 1.5rem;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.05);
+            padding: 2.5rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        h1 {
+            border-bottom: 3px solid #4a5568;
+            padding-bottom: 0.75rem;
+            margin-bottom: 2rem;
+            width: 100%;
+            text-align: center;
+        }
+        #chart-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+            height: 500px;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 p-8">
+    <div class="container">
+        <h1 class="text-3xl font-bold text-gray-800">จำนวนลูกค้าในแต่ละช่วงยอดใช้จ่าย นาย อภิพล ศรีโกมาตย์ CE6821</h1>
+        
+        <div id="chart-container">
+            <canvas id="pie-chart"></canvas>
+        </div>
+    </div>
+
+    <script>
+        const ctx = document.getElementById('pie-chart').getContext('2d');
+        const data = [6, 7, 2, 3, 2];
+        const labels = [
+            '793.6 - 2,080 บาท',
+            '2,080.1 - 3,360 บาท',
+            '3,360.1 - 4,640 บาท',
+            '4,640.1 - 5,920 บาท',
+            '5,920.1 - 7,200 บาท'
+        ];
+        
+        const backgroundColors = [
+            '#4A90E2', // Blue
+            '#F5A623', // Orange
+            '#50E3C2', // Turquoise
+            '#BD10E0', // Purple
+            '#7ED321'  // Green
+        ];
+
+        const totalCustomers = data.reduce((sum, count) => sum + count, 0);
+
+        const config = {
+            type: 'pie',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'จำนวนลูกค้า',
+                    data: data,
+                    backgroundColor: backgroundColors,
+                    hoverOffset: 20,
+                    borderColor: '#fff',
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'right',
+                        labels: {
+                            font: {
+                                size: 14,
+                                family: 'Kanit'
+                            }
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.label || '';
+                                if (label) {
+                                    label += ': ';
+                                }
+                                if (context.parsed !== null) {
+                                    const percentage = (context.parsed / totalCustomers * 100).toFixed(1);
+                                    label += `${context.parsed} คน (${percentage}%)`;
+                                }
+                                return label;
+                            }
+                        },
+                        bodyFont: {
+                            family: 'Kanit'
+                        },
+                        titleFont: {
+                            family: 'Kanit'
+                        }
+                    },
+                    datalabels: {
+                        color: '#fff',
+                        font: {
+                            weight: 'bold',
+                            size: 16,
+                            family: 'Kanit'
+                        },
+                        formatter: (value, context) => {
+                            const percentage = (value / totalCustomers * 100).toFixed(1);
+                            return `${percentage}%`;
+                        }
+                    }
+                }
+            },
+            plugins: [ChartDataLabels]
+        };
+
+        const myChart = new Chart(ctx, config);
+    </script>
+</body>
+</html>
